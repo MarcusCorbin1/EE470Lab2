@@ -28,10 +28,10 @@
 #define TERMINAL_USE
 
 /* Update SSID and PASSWORD with own Access point settings */
-#define SSID     "NETGEAR87"
-#define PASSWORD "quickviolet413"
+#define SSID     "BennertFi"
+#define PASSWORD "Markik57"
 
-uint8_t RemoteIP[] = {192,168,1,4};
+uint8_t RemoteIP[] = {192,168,1,145};
 #define RemotePORT	8002
 
 #define WIFI_WRITE_TIMEOUT 10000
@@ -260,57 +260,78 @@ int main(void)
           RxData[Datalen]=0;
           TERMOUT("Received: %s\n",RxData);
 					
-					// Temperature
+					//Initialize Variables
+					char TempValue[6], HumValue[6], PressValue[6];
+					float temp, hum, press;
 					int ret = 0;
 					
-					if (HSENSOR_OK != BSP_HSENSOR_Init())
+					int comp = strcmp((const char*)RxData, "tester");
+					
+					//Temperature Values
+					if (comp == -88)
 					{
-						TERMOUT("BSP_HSENSOR_Init() returns %d\n\r", ret);
-						ret = -1;
+						// Initialize Temperature Sensor
+						if (TSENSOR_OK != BSP_TSENSOR_Init())
+						{
+							TERMOUT("BSP_TSENSOR_Init() returns %d\n\r", ret);
+							ret = -1;
+						}
+						
+						//Get temp value	
+						temp = BSP_TSENSOR_ReadTemp();
+						snprintf(TempValue, 6, "%f", temp);
+						
+						//Return Temp
+						ret = WIFI_SendData(Socket, (uint8_t*)"Temperature: ", 14, &Datalen, WIFI_WRITE_TIMEOUT);
+						ret = WIFI_SendData(Socket, (uint8_t*)TempValue, sizeof(TempValue), &Datalen, WIFI_WRITE_TIMEOUT);
+						ret = WIFI_SendData(Socket, (uint8_t*)" degrees C \n", 12, &Datalen, WIFI_WRITE_TIMEOUT);
 					}
 					
-					if (TSENSOR_OK != BSP_TSENSOR_Init())
+					else if (comp == -12)
 					{
-						TERMOUT("BSP_TSENSOR_Init() returns %d\n\r", ret);
-						ret = -1;
+						
+						// Initialize Humidity Sensor
+						if (HSENSOR_OK != BSP_HSENSOR_Init())
+						{
+							TERMOUT("BSP_HSENSOR_Init() returns %d\n\r", ret);
+							ret = -1;
+						}
+					
+						
+						//Get humidity value	
+						hum = BSP_HSENSOR_ReadHumidity();
+						snprintf(HumValue, 6, "%f", hum);
+						
+						//Return Humidity
+						ret = WIFI_SendData(Socket, (uint8_t*)"Humidity: ", 10, &Datalen, WIFI_WRITE_TIMEOUT);
+						ret = WIFI_SendData(Socket, (uint8_t*)HumValue, sizeof(HumValue), &Datalen, WIFI_WRITE_TIMEOUT);
+						ret = WIFI_SendData(Socket, (uint8_t*)" % \n", 5, &Datalen, WIFI_WRITE_TIMEOUT);
 					}
 					
-					if (PSENSOR_OK != BSP_PSENSOR_Init())
+					else if (comp == -4)
 					{
-						TERMOUT("BSP_PSENSOR_Init() returns %d\n\r", ret);
-						ret = -1;
+						// Initialize Pressure Sensor
+						if (PSENSOR_OK != BSP_PSENSOR_Init())
+						{
+							TERMOUT("BSP_PSENSOR_Init() returns %d\n\r", ret);
+							ret = -1;
+						}
+						
+						//Get humidity value	
+						press = BSP_PSENSOR_ReadPressure();
+						snprintf(PressValue, 6, "%f", press);
+						
+						//Return Pressure
+						ret = WIFI_SendData(Socket, (uint8_t*)"Pressure: ", 10, &Datalen, WIFI_WRITE_TIMEOUT);
+						ret = WIFI_SendData(Socket, (uint8_t*)PressValue, sizeof(PressValue), &Datalen, WIFI_WRITE_TIMEOUT);
+						ret = WIFI_SendData(Socket, (uint8_t*)" mBar \n", 7, &Datalen, WIFI_WRITE_TIMEOUT);
+						
 					}
 					
-					int resultT = 0, resultH = 0, resultP = 0;
-					char TempValue[6], HumValue[6], PressValue[6];
-					
-					//Get temp value	
-					float temp = BSP_TSENSOR_ReadTemp();
-					resultT = snprintf(TempValue, 6, "%f", temp);
-		
-					//Get humidity value	
-					float hum = BSP_HSENSOR_ReadHumidity();
-					resultH = snprintf(HumValue, 6, "%f", hum);
-					
-					//Get humidity value	
-					float press = BSP_PSENSOR_ReadPressure();
-					resultP = snprintf(PressValue, 6, "%f", press);
-		
-					
-					//Return Temp
-					ret = WIFI_SendData(Socket, (uint8_t*)"Temperature: ", 14, &Datalen, WIFI_WRITE_TIMEOUT);
-					ret = WIFI_SendData(Socket, (uint8_t*)TempValue, sizeof(TempValue), &Datalen, WIFI_WRITE_TIMEOUT);
-          ret = WIFI_SendData(Socket, (uint8_t*)" degrees C \n", 12, &Datalen, WIFI_WRITE_TIMEOUT);
-					
-					//Return Humidity
-					ret = WIFI_SendData(Socket, (uint8_t*)"Humidity: ", 10, &Datalen, WIFI_WRITE_TIMEOUT);
-					ret = WIFI_SendData(Socket, (uint8_t*)HumValue, sizeof(HumValue), &Datalen, WIFI_WRITE_TIMEOUT);
-          ret = WIFI_SendData(Socket, (uint8_t*)" % \n", 5, &Datalen, WIFI_WRITE_TIMEOUT);
-					
-					//Return Pressure
-					ret = WIFI_SendData(Socket, (uint8_t*)"Pressure: ", 10, &Datalen, WIFI_WRITE_TIMEOUT);
-					ret = WIFI_SendData(Socket, (uint8_t*)PressValue, sizeof(PressValue), &Datalen, WIFI_WRITE_TIMEOUT);
-          ret = WIFI_SendData(Socket, (uint8_t*)" mBar \n", 7, &Datalen, WIFI_WRITE_TIMEOUT);
+					else
+					{
+						TERMOUT("Error: only send lowercase t for temperature, h for humidity, and p for pressure");
+					}
 					
 					//Extra Newline
 					ret = WIFI_SendData(Socket, (uint8_t*)" \n", 3, &Datalen, WIFI_WRITE_TIMEOUT);
